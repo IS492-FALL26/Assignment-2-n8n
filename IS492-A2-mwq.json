@@ -1,0 +1,310 @@
+{
+  "name": "Daily arXiv Research Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "492e5a26-235e-49c1-bc51-9849e2add592",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ef4bf8d8-0053-4008-a737-f60189c7df30",
+      "name": "XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Summarize this research paper abstract in 3-4 clear sentences for a student:  {{ $json.abstract }}",
+        "batching": {}
+      },
+      "id": "613a8f4a-e401-4062-a6cb-8c1eb504e4e2",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "id": "a20f0422-375b-42ac-8f59-fb527d4f2a3d",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        128
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "zn657AywOlLWARsk",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mwanqing@outlook.com",
+        "subject": "=New arXiv Paper: {{ $('Extract Paper Fields').item.json.title }}",
+        "emailType": "text",
+        "message": "=New Research Paper Alert  Title: {{ $('Extract Paper Fields').item.json.title }}  Authors: {{ $('Extract Paper Fields').item.json.authors }}  Published: {{ $('Extract Paper Fields').item.json.published }}  Paper Link: {{ $('Extract Paper Fields').item.json.link }}  AI Summary: {{ $json.text }}  Full Abstract: {{ $('Extract Paper Fields').item.json.abstract }}  This is your daily arXiv research update.  Thanks, n8n agent demo",
+        "options": {}
+      },
+      "id": "0660723c-c78a-4d5f-8035-b253f46ea6bd",
+      "name": "Send a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        0
+      ],
+      "webhookId": "9f19b1e8-a4ab-40f2-b8cb-ce7befea4c6b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kz64CrMheIjL7Q9g",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://export.arxiv.org/api/query?search_query=all:human-AI+collaboration&start=0&max_results=1&sortBy=submittedDate&sortOrder=descending",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "c00d45a8-319a-4cdc-85c0-816486666adc",
+      "name": "Fetch arXiv Paper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cfb423a-1a52-40ba-8518-494e2eece130",
+              "name": "title",
+              "value": "={{ $json.feed.entry.title }}",
+              "type": "string"
+            },
+            {
+              "id": "811b1c29-185d-4f72-96c1-3d447983bbf6",
+              "name": "authors",
+              "value": "={{ Array.isArray($json.feed.entry.author) ? $json.feed.entry.author.map(a => a.name).join(', ') : $json.feed.entry.author.name }}",
+              "type": "string"
+            },
+            {
+              "id": "78c874a0-11c5-4496-a4b1-c5ef2fe10f83",
+              "name": "published",
+              "value": "={{ $json.feed.entry.published }}",
+              "type": "string"
+            },
+            {
+              "id": "0d94a673-c271-46e3-a4da-656bd07ade74",
+              "name": "link",
+              "value": "={{ $json.feed.entry.id }}",
+              "type": "string"
+            },
+            {
+              "id": "92d7cd24-3a17-4dd5-b25c-fd91b992314b",
+              "name": "abstract",
+              "value": "={{ $json.feed.entry.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb45fe4b-c3ac-42e7-ae05-4365ebf01e98",
+      "name": "Extract Paper Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f09e3545-7d89-4489-9071-57f9ea8539c5",
+              "leftValue": "={{ $json.abstract }}",
+              "rightValue": "AI",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4f6977d1-f0f3-4e7a-9e0b-5d65b5754990",
+      "name": "Filter by Keyword",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch arXiv Paper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Extract Paper Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch arXiv Paper": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Paper Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter by Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter by Keyword": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9f64a3b3-bbc5-43b9-8e7e-d44a9cfe14a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "23cbc2c728161b81e4daa6a76a32d5214010bb4dba8dc838dc51f21ba2fe564f"
+  },
+  "nodeGroups": [],
+  "id": "onIQr7zyZTaNRHyK",
+  "tags": []
+}
